@@ -12,7 +12,7 @@ I created this tool for two reasons:
 For more information on my automated build system see:
 [Automated Build System Tutorial Videos](https://www.youtube.com/playlist?list=PLJ3o2ZgH1Q-AEZxfcQ5S4Eat7ggaixuXj)
 
-[Autoamted Build System Blog Posts](https://www.bargelt.com/2016/10/06/automated-build-system-docker-jenkins-azure-go-intro/)
+[Automated Build System Blog Posts](https://www.bargelt.com/2016/10/06/automated-build-system-docker-jenkins-azure-go-intro/)
 
 ## It is early
 
