@@ -29,7 +29,7 @@ or, if you have a config file with your basic config items (username, password, 
 
 ## Create Yet Another Docker Plugin Template
 
-![dockhand in action](http://www.giphy.com/gifs/3o7WIFH959CSjU2AbS)
+![dockhand in action](https://media.giphy.com/media/3o7WIFH959CSjU2AbS/giphy.gif)
 
 ```shell
 ./dockhand createDockerTemplate --username jenkinsyaduser --password correcthorsebatterystaple --jenkinsurl https://localhost:8080 --label dotnetcore_2 --image microsoft/dotnet:2.0-sdk
