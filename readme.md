@@ -14,6 +14,33 @@ For more information on my automated build system see:
 
 [Automated Build System Blog Posts](https://www.bargelt.com/2016/10/06/automated-build-system-docker-jenkins-azure-go-intro/)
 
+
+## Get Labels
+
+```shell
+./dockhand getLabels --username jenkinsyaduser --password correcthorsebatterystaple --jenkinsurl https://localhost:8080 --cloudname JenkinsCloud
+```
+
+or, if you have a config file with your basic config items (username, password, jenkinsurl) it is as simple as:
+
+```shell
+./dockhand getLabels --cloudname JenkinsCloud
+```
+
+## Create Yet Another Docker Plugin Template
+
+![dockhand in action](http://www.giphy.com/gifs/3o7WIFH959CSjU2AbS)
+
+```shell
+./dockhand createDockerTemplate --username jenkinsyaduser --password correcthorsebatterystaple --jenkinsurl https://localhost:8080 --label dotnetcore_2 --image microsoft/dotnet:2.0-sdk
+```
+
+or, if you have a config file with your basic config items (username, password, jenkinsurl) it is as simple as:
+
+```shell
+./dockhand createDockerTemplate --cloudname EphemeralContainers --label dotnetcore_2 --image microsoft/dotnet:2.0-sdk
+```
+
 ## It is early
 
 No polish, no glitter. Alright it is downright ugly. 

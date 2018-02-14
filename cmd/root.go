@@ -24,12 +24,19 @@ import (
 	"fmt"
 	"os"
 
+	homedir "github.com/mitchellh/go-homedir"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-var cfgFile string
-var jenkinsURL string
+var (
+	cfgFile         string
+	jenkinsURL      string
+	jenkinsUsername string
+	jenkinsPassword string
+	cloudName       string
+)
 
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
@@ -55,31 +62,39 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	// Here you will define your flags and configuration settings.
-	// Cobra supports Persistent Flags, which, if defined here,
-	// will be global for your application.
-
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.dockhand.yaml)")
-	RootCmd.PersistentFlags().StringVar(&jenkinsURL, "jenkinsURL", "", "The base URL of your Jenkins server")
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	//RootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	RootCmd.PersistentFlags().StringVar(&jenkinsURL, "jenkinsurl", "", "The base URL of your Jenkins server")
+	RootCmd.PersistentFlags().StringVarP(&jenkinsUsername, "username", "u", "", "Jenkins username")
+	RootCmd.PersistentFlags().StringVarP(&jenkinsPassword, "password", "p", "", "Jenkins password")
+	RootCmd.PersistentFlags().StringVarP(&cloudName, "cloudname", "c", "", "The Jenkins Yet Another Docker 'Cloud Name' to add Docker Template to")
 
-	viper.BindPFlag("jenkinsURL", RootCmd.PersistentFlags().Lookup("jenkinsURL"))
+	viper.BindPFlag("jenkinsurl", RootCmd.PersistentFlags().Lookup("jenkinsurl"))
+	viper.BindPFlag("username", RootCmd.PersistentFlags().Lookup("username"))
+	viper.BindPFlag("password", RootCmd.PersistentFlags().Lookup("password"))
+	viper.BindPFlag("cloudname", RootCmd.PersistentFlags().Lookup("cloudname"))
+
 }
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
 	if cfgFile != "" { // enable ability to specify config file via flag
 		viper.SetConfigFile(cfgFile)
+	} else {
+		// Find home directory.
+		home, err := homedir.Dir()
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		viper.AddConfigPath(home)
+		viper.SetConfigName(".dockhand")
 	}
 
-	viper.SetConfigName(".dockhand") // name of config file (without extension)
-	viper.AddConfigPath("$HOME")     // adding home directory as first search path
-	viper.AutomaticEnv()             // read in environment variables that match
-
+	//viper.AutomaticEnv()             // read in environment variables that match
 	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		fmt.Println("Using config file:", viper.ConfigFileUsed())
+	if err := viper.ReadInConfig(); err != nil {
+		fmt.Println("Can't read config:", err)
+		os.Exit(1)
 	}
 }

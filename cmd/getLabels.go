@@ -32,21 +32,10 @@ import (
 	"github.com/spf13/viper"
 )
 
-var (
-	label string
-	image string
-)
-
-type crumb struct {
-	Class             string `json:"_class"`
-	Crumb             string `json:"crumb"`
-	CrumbRequestField string `json:"crumbRequestField"`
-}
-
-// createDockerTemplateCmd represents the createDockerTemplate command
-var createDockerTemplateCmd = &cobra.Command{
-	Use:   "createDockerTemplate",
-	Short: "Creates a docker template in your Jenkins instance",
+// getLabelsCmd represents the getLabels command
+var getLabelsCmd = &cobra.Command{
+	Use:   "getLabels",
+	Short: "Get the labels from the Docker Templates in Jenkins",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
 
@@ -56,15 +45,14 @@ to quickly create a Cobra application.`,
 }
 
 func init() {
-	RootCmd.AddCommand(createDockerTemplateCmd)
-	createDockerTemplateCmd.Flags().StringVarP(&label, "label", "l", "", "The unique label to use for this Docker Template.")
-	createDockerTemplateCmd.MarkFlagRequired("label")
-	createDockerTemplateCmd.Flags().StringVarP(&image, "image", "i", "", "The docker image that this template will use for builds.")
-	createDockerTemplateCmd.MarkFlagRequired("image")
-	createDockerTemplateCmd.RunE = createDockerTemplate
+	RootCmd.AddCommand(getLabelsCmd)
+	createDockerTemplateCmd.Flags().StringVarP(&cloudName, "cloudname", "c", "", "The Jenkins Yet Another Docker 'Cloud Name' to add Docker Template to")
+	viper.BindPFlag("cloudname", createDockerTemplateCmd.PersistentFlags().Lookup("cloudname"))
+
+	getLabelsCmd.RunE = getLabels
 }
 
-func createDockerTemplate(cmd *cobra.Command, args []string) error {
+func getLabels(cmd *cobra.Command, args []string) error {
 
 	crumbAPI := fmt.Sprintf("%s%s", viper.GetString("jenkinsurl"), "/crumbIssuer/api/json")
 
@@ -92,69 +80,26 @@ func createDockerTemplate(cmd *cobra.Command, args []string) error {
 	}
 
 	script := `
-import com.github.kostyasha.yad.commons.*;
-import com.github.kostyasha.yad.DockerCloud;
-import com.github.kostyasha.yad.DockerContainerLifecycle;
-import com.github.kostyasha.yad.DockerSlaveTemplate;
-import com.github.kostyasha.yad.launcher.DockerComputerJNLPLauncher;
-import com.github.kostyasha.yad.strategy.DockerOnceRetentionStrategy;
+	def myCloud = Jenkins.instance.getInstance().getCloud("` + viper.GetString("cloudname") + `");
 
-// Let's find the cloud!
-def myCloud = Jenkins.instance.getInstance().getCloud("` + viper.GetString("cloudname") + `");
 if (!myCloud) {
   println("Cloud not found, aborting.") 
   return false
 }
 
-def label = "` + label + `"
-def image = "` + image + `"
-
-def launcher = new DockerComputerJNLPLauncher();
-launcher.setUser("jenkins");
-launcher.setLaunchTimeout(60);
-
-def pullImage = new DockerPullImage();
-pullImage.setPullStrategy(DockerImagePullStrategy.PULL_NEVER);
-
-//remove
-def removeContainer = new DockerRemoveContainer();
-removeContainer.setRemoveVolumes(true);
-removeContainer.setForce(true);
-
-def createContainer = new DockerCreateContainer();
-
-//allows Slaves to reference the host Docker to run Docker in Docker
-//Inception. Nuff said.
-def volumeList = ["/var/run/docker.sock:/var/run/docker.sock"]
-createContainer.setVolumes(volumeList);
-
-//lifecycle
-def containerLifecycle = new DockerContainerLifecycle();
-containerLifecycle.setImage(image);
-containerLifecycle.setPullImage(pullImage);
-containerLifecycle.setRemoveContainer(removeContainer);
-containerLifecycle.setCreateContainer(createContainer);
-
-//Node Properties (environment variables)
-def nodeProperties = new ArrayList<>();
-
-def slaveTemplate = new DockerSlaveTemplate();
-slaveTemplate.setLabelString(label);
-slaveTemplate.setLauncher(launcher);
-slaveTemplate.setMode(Node.Mode.EXCLUSIVE);
-slaveTemplate.setRetentionStrategy(new DockerOnceRetentionStrategy(5));
-slaveTemplate.setDockerContainerLifecycle(containerLifecycle);
-slaveTemplate.setNodeProperties(nodeProperties);
-
 def templates = myCloud.getTemplates();
-def newTemplates = new ArrayList<DockerSlaveTemplate>();
-newTemplates.addAll(templates);
-newTemplates.add(slaveTemplate);
 
-myCloud.setTemplates(newTemplates);
-Jenkins.getActiveInstance().save();
+def uniqueLabels = []
+templates.each { template ->
+ words = template.labelString.split()
+ def labelListForSlave = []
+ words.each() {
+          uniqueLabels.add(it)
+ }
+}
+uniqueLabels.unique()
 
-return true`
+return uniqueLabels`
 
 	query := fmt.Sprintf("%s&script=%s", crumbHeader, script)
 
