@@ -23,6 +23,7 @@ package cmd
 import (
 	"bytes"
 	"fmt"
+	"strings"
 	"text/template"
 
 	"github.com/spf13/cobra"
@@ -33,20 +34,17 @@ import (
 // getLabelsCmd represents the getLabels command
 var getLabelsCmd = &cobra.Command{
 	Use:   "getLabels",
-	Short: "Get the labels from the Docker Templates in Jenkins",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Get the labels from the YAD Docker Templates in Jenkins",
+	Long: `Returns the labels used in all of the Docker Templates in a 
+				 Jenkins Yet Another Docker Plugin Cloud - given
+				 the cloud name as a parameter --cloudname.`,
 }
 
 func init() {
+
 	RootCmd.AddCommand(getLabelsCmd)
 	createDockerTemplateCmd.Flags().StringVarP(&cloudName, "cloudname", "c", "", "The Jenkins Yet Another Docker 'Cloud Name' to add Docker Template to")
 	viper.BindPFlag("cloudname", createDockerTemplateCmd.PersistentFlags().Lookup("cloudname"))
-
 	getLabelsCmd.RunE = getLabels
 }
 
@@ -60,11 +58,15 @@ func getLabels(cmd *cobra.Command, args []string) error {
 	var tpl bytes.Buffer
 	err = t.Execute(&tpl, data)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	body, err := jenkins.RunScript(viper.GetString("jenkinsurl"), viper.GetString("username"), viper.GetString("password"), tpl.String())
+	if err != nil {
+		return err
+	}
 
+	body = strings.Replace(body, "Result: ", "", -1)
 	fmt.Println(body)
 
 	return nil

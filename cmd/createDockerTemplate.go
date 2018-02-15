@@ -23,6 +23,7 @@ package cmd
 import (
 	"bytes"
 	"fmt"
+	"strings"
 	"text/template"
 
 	"github.com/spf13/cobra"
@@ -77,7 +78,11 @@ func createDockerTemplate(cmd *cobra.Command, args []string) error {
 
 	body, err := jenkins.RunScript(viper.GetString("jenkinsurl"),
 		viper.GetString("username"), viper.GetString("password"), tpl.String())
+	if err != nil {
+		return err
+	}
 
+	body = strings.Replace(body, "Result: ", "", -1)
 	fmt.Println(body)
 
 	return nil

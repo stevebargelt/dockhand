@@ -17,6 +17,8 @@ For more information on my automated build system see:
 
 ## Get Labels
 
+Returns all the labels being used by the specified Yet Another Docker Plugin Cloud.
+
 ```shell
 ./dockhand getLabels --username jenkinsyaduser --password correcthorsebatterystaple --jenkinsurl https://localhost:8080 --cloudname JenkinsCloud
 ```
@@ -27,7 +29,9 @@ or, if you have a config file with your basic config items (username, password, 
 ./dockhand getLabels --cloudname JenkinsCloud
 ```
 
-## Create Yet Another Docker Plugin Template
+## Create Yet Another Docker Plugin "Docker Template"
+
+Creates a Docker Template under the named Yet Another Docker Cloud.
 
 ![dockhand in action](https://media.giphy.com/media/3o7WIFH959CSjU2AbS/giphy.gif)
 
@@ -43,5 +47,5 @@ or, if you have a config file with your basic config items (username, password, 
 
 ## It is early
 
-No polish, no glitter. Alright it is downright ugly. 
+No polish, no glitter.
 Works for me at the moment.
