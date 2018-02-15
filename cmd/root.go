@@ -66,7 +66,7 @@ func init() {
 	RootCmd.PersistentFlags().StringVar(&jenkinsURL, "jenkinsurl", "", "The base URL of your Jenkins server")
 	RootCmd.PersistentFlags().StringVarP(&jenkinsUsername, "username", "u", "", "Jenkins username")
 	RootCmd.PersistentFlags().StringVarP(&jenkinsPassword, "password", "p", "", "Jenkins password")
-	RootCmd.PersistentFlags().StringVarP(&cloudName, "cloudname", "c", "", "The Jenkins Yet Another Docker 'Cloud Name' to add Docker Template to")
+	RootCmd.PersistentFlags().StringVarP(&cloudName, "cloudname", "c", "", "The Jenkins Yet Another Docker Plugin 'Cloud Name'")
 
 	viper.BindPFlag("jenkinsurl", RootCmd.PersistentFlags().Lookup("jenkinsurl"))
 	viper.BindPFlag("username", RootCmd.PersistentFlags().Lookup("username"))

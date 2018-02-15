@@ -22,6 +22,7 @@ package cmd
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"strings"
 	"text/template"
@@ -39,25 +40,32 @@ var (
 // createDockerTemplateCmd represents the createDockerTemplate command
 var createDockerTemplateCmd = &cobra.Command{
 	Use:   "createDockerTemplate",
-	Short: "Creates a docker template in your Jenkins instance",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Creates a docker template in a Jenkins YAD cloud",
+	Long: `Creates a 'Docker Template' in a Jenkins Yet Another Docker Plugin Cloud
+					given the could name, a label, and a docker image to pull.`,
 }
 
 func init() {
 	RootCmd.AddCommand(createDockerTemplateCmd)
-	createDockerTemplateCmd.Flags().StringVarP(&label, "label", "l", "", "The unique label to use for this Docker Template.")
+	createDockerTemplateCmd.Flags().StringVarP(&label, "label", "l", "", "The unique label to use for this Docker Template")
 	createDockerTemplateCmd.MarkFlagRequired("label")
-	createDockerTemplateCmd.Flags().StringVarP(&image, "image", "i", "", "The docker image that this template will use for builds.")
+	createDockerTemplateCmd.Flags().StringVarP(&image, "image", "i", "", "The docker image that this template will use")
 	createDockerTemplateCmd.MarkFlagRequired("image")
 	createDockerTemplateCmd.RunE = createDockerTemplate
 }
 
 func createDockerTemplate(cmd *cobra.Command, args []string) error {
+
+	usedLabels, err := GetLabels()
+	if err != nil {
+		return nil
+	}
+
+	for _, usedLabel := range usedLabels {
+		if label == usedLabel {
+			return errors.New("cannot create a Docker Template with a duplicate label")
+		}
+	}
 
 	data := struct {
 		Cloudname string

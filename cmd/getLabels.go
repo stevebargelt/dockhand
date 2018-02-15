@@ -31,7 +31,6 @@ import (
 	"github.com/stevebargelt/dockhand/jenkins"
 )
 
-// getLabelsCmd represents the getLabels command
 var getLabelsCmd = &cobra.Command{
 	Use:   "getLabels",
 	Short: "Get the labels from the YAD Docker Templates in Jenkins",
@@ -43,12 +42,13 @@ var getLabelsCmd = &cobra.Command{
 func init() {
 
 	RootCmd.AddCommand(getLabelsCmd)
-	createDockerTemplateCmd.Flags().StringVarP(&cloudName, "cloudname", "c", "", "The Jenkins Yet Another Docker 'Cloud Name' to add Docker Template to")
-	viper.BindPFlag("cloudname", createDockerTemplateCmd.PersistentFlags().Lookup("cloudname"))
+	getLabelsCmd.Flags().StringVarP(&cloudName, "cloudname", "c", "", "The Jenkins Yet Another Docker 'Cloud Name' to add Docker Template to")
+	viper.BindPFlag("cloudname", getLabelsCmd.PersistentFlags().Lookup("cloudname"))
 	getLabelsCmd.RunE = getLabels
 }
 
-func getLabels(cmd *cobra.Command, args []string) error {
+// GetLabels returns the labels used in a YAD Cloud
+func GetLabels() ([]string, error) {
 
 	data := struct {
 		Cloudname string
@@ -58,16 +58,33 @@ func getLabels(cmd *cobra.Command, args []string) error {
 	var tpl bytes.Buffer
 	err = t.Execute(&tpl, data)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	body, err := jenkins.RunScript(viper.GetString("jenkinsurl"), viper.GetString("username"), viper.GetString("password"), tpl.String())
 	if err != nil {
+		return nil, err
+	}
+
+	body = strings.Replace(body, "Result: [", "", -1)
+	body = strings.Replace(body, "]", "", -1)
+	body = strings.TrimSuffix(body, "\n")
+	labels := strings.Split(body, ", ")
+
+	return labels, nil
+
+}
+
+func getLabels(cmd *cobra.Command, args []string) error {
+
+	labels, err := GetLabels()
+	if err != nil {
 		return err
 	}
 
-	body = strings.Replace(body, "Result: ", "", -1)
-	fmt.Println(body)
+	for _, label := range labels {
+		fmt.Println(label)
+	}
 
 	return nil
 }
