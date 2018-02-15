@@ -21,15 +21,13 @@
 package cmd
 
 import (
-	"encoding/json"
+	"bytes"
 	"fmt"
-	"io/ioutil"
-	"log"
-	"net/http"
-	"strings"
+	"text/template"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/stevebargelt/dockhand/jenkins"
 )
 
 // getLabelsCmd represents the getLabels command
@@ -54,75 +52,20 @@ func init() {
 
 func getLabels(cmd *cobra.Command, args []string) error {
 
-	crumbAPI := fmt.Sprintf("%s%s", viper.GetString("jenkinsurl"), "/crumbIssuer/api/json")
+	data := struct {
+		Cloudname string
+	}{viper.GetString("cloudname")}
 
-	req, err := http.NewRequest("GET", crumbAPI, nil)
+	t, err := template.ParseFiles("scripts/getLabels.groovy")
+	var tpl bytes.Buffer
+	err = t.Execute(&tpl, data)
 	if err != nil {
-		log.Fatal(err)
-	}
-	req.SetBasicAuth(viper.GetString("username"), viper.GetString("password"))
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer resp.Body.Close()
-
-	var jenkinsCrumb crumb
-	var crumbHeader string
-	if resp.StatusCode == http.StatusOK {
-		bodyBytes, _ := ioutil.ReadAll(resp.Body)
-		err := json.Unmarshal(bodyBytes, &jenkinsCrumb)
-		if err != nil {
-			log.Fatal(err)
-		}
-		crumbHeader = fmt.Sprintf("%s=%s", jenkinsCrumb.CrumbRequestField, jenkinsCrumb.Crumb)
+		panic(err)
 	}
 
-	script := `
-	def myCloud = Jenkins.instance.getInstance().getCloud("` + viper.GetString("cloudname") + `");
+	body, err := jenkins.RunScript(viper.GetString("jenkinsurl"), viper.GetString("username"), viper.GetString("password"), tpl.String())
 
-if (!myCloud) {
-  println("Cloud not found, aborting.") 
-  return false
-}
-
-def templates = myCloud.getTemplates();
-
-def uniqueLabels = []
-templates.each { template ->
- words = template.labelString.split()
- def labelListForSlave = []
- words.each() {
-          uniqueLabels.add(it)
- }
-}
-uniqueLabels.unique()
-
-return uniqueLabels`
-
-	query := fmt.Sprintf("%s&script=%s", crumbHeader, script)
-
-	scriptURL := fmt.Sprintf("%s%s", viper.GetString("jenkinsurl"), "/scriptText")
-	body := strings.NewReader(query)
-	req, err = http.NewRequest("POST", scriptURL, body)
-	if err != nil {
-		log.Fatal(err)
-	}
-	req.SetBasicAuth(viper.GetString("username"), viper.GetString("password"))
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-	resp, err = http.DefaultClient.Do(req)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusOK {
-		bodyBytes, _ := ioutil.ReadAll(resp.Body)
-		bodyString := string(bodyBytes)
-		fmt.Println(bodyString)
-	}
+	fmt.Println(body)
 
 	return nil
 }

@@ -20,7 +20,9 @@
 
 package main
 
-import "github.com/stevebargelt/dockhand/cmd"
+import (
+	"github.com/stevebargelt/dockhand/cmd"
+)
 
 func main() {
 	cmd.Execute()

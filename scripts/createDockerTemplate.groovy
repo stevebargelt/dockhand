@@ -10,14 +10,14 @@ import com.github.kostyasha.yad.strategy.DockerOnceRetentionStrategy;
 //		image
 
 // Let's find the cloud!
-def myCloud = Jenkins.instance.getInstance().getCloud("<<cloudName>>");
+def myCloud = Jenkins.instance.getInstance().getCloud("{{.Cloudname}}");
 if (!myCloud) {
   println("Cloud not found, aborting.") 
   return false
 }
 
-def label = "<<label>>"
-def image = "<<image>>"
+def label = "{{.Label}}"
+def image = "{{.Image}}"
 
 def launcher = new DockerComputerJNLPLauncher();
 launcher.setUser("jenkins");

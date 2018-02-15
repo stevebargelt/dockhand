@@ -1,4 +1,4 @@
-def myCloud = Jenkins.instance.getInstance().getCloud("<<cloudname>>");
+def myCloud = Jenkins.instance.getInstance().getCloud("{{.Cloudname}}");
 
 if (!myCloud) {
   println("Cloud not found, aborting.") 

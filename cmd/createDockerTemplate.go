@@ -21,27 +21,19 @@
 package cmd
 
 import (
-	"encoding/json"
+	"bytes"
 	"fmt"
-	"io/ioutil"
-	"log"
-	"net/http"
-	"strings"
+	"text/template"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/stevebargelt/dockhand/jenkins"
 )
 
 var (
 	label string
 	image string
 )
-
-type crumb struct {
-	Class             string `json:"_class"`
-	Crumb             string `json:"crumb"`
-	CrumbRequestField string `json:"crumbRequestField"`
-}
 
 // createDockerTemplateCmd represents the createDockerTemplate command
 var createDockerTemplateCmd = &cobra.Command{
@@ -66,118 +58,27 @@ func init() {
 
 func createDockerTemplate(cmd *cobra.Command, args []string) error {
 
-	crumbAPI := fmt.Sprintf("%s%s", viper.GetString("jenkinsurl"), "/crumbIssuer/api/json")
+	data := struct {
+		Cloudname string
+		Label     string
+		Image     string
+	}{
+		viper.GetString("cloudname"),
+		label,
+		image,
+	}
 
-	req, err := http.NewRequest("GET", crumbAPI, nil)
+	t, err := template.ParseFiles("scripts/createDockerTemplate.groovy")
+	var tpl bytes.Buffer
+	err = t.Execute(&tpl, data)
 	if err != nil {
-		log.Fatal(err)
-	}
-	req.SetBasicAuth(viper.GetString("username"), viper.GetString("password"))
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer resp.Body.Close()
-
-	var jenkinsCrumb crumb
-	var crumbHeader string
-	if resp.StatusCode == http.StatusOK {
-		bodyBytes, _ := ioutil.ReadAll(resp.Body)
-		err := json.Unmarshal(bodyBytes, &jenkinsCrumb)
-		if err != nil {
-			log.Fatal(err)
-		}
-		crumbHeader = fmt.Sprintf("%s=%s", jenkinsCrumb.CrumbRequestField, jenkinsCrumb.Crumb)
+		return err
 	}
 
-	script := `
-import com.github.kostyasha.yad.commons.*;
-import com.github.kostyasha.yad.DockerCloud;
-import com.github.kostyasha.yad.DockerContainerLifecycle;
-import com.github.kostyasha.yad.DockerSlaveTemplate;
-import com.github.kostyasha.yad.launcher.DockerComputerJNLPLauncher;
-import com.github.kostyasha.yad.strategy.DockerOnceRetentionStrategy;
+	body, err := jenkins.RunScript(viper.GetString("jenkinsurl"),
+		viper.GetString("username"), viper.GetString("password"), tpl.String())
 
-// Let's find the cloud!
-def myCloud = Jenkins.instance.getInstance().getCloud("` + viper.GetString("cloudname") + `");
-if (!myCloud) {
-  println("Cloud not found, aborting.") 
-  return false
-}
-
-def label = "` + label + `"
-def image = "` + image + `"
-
-def launcher = new DockerComputerJNLPLauncher();
-launcher.setUser("jenkins");
-launcher.setLaunchTimeout(60);
-
-def pullImage = new DockerPullImage();
-pullImage.setPullStrategy(DockerImagePullStrategy.PULL_NEVER);
-
-//remove
-def removeContainer = new DockerRemoveContainer();
-removeContainer.setRemoveVolumes(true);
-removeContainer.setForce(true);
-
-def createContainer = new DockerCreateContainer();
-
-//allows Slaves to reference the host Docker to run Docker in Docker
-//Inception. Nuff said.
-def volumeList = ["/var/run/docker.sock:/var/run/docker.sock"]
-createContainer.setVolumes(volumeList);
-
-//lifecycle
-def containerLifecycle = new DockerContainerLifecycle();
-containerLifecycle.setImage(image);
-containerLifecycle.setPullImage(pullImage);
-containerLifecycle.setRemoveContainer(removeContainer);
-containerLifecycle.setCreateContainer(createContainer);
-
-//Node Properties (environment variables)
-def nodeProperties = new ArrayList<>();
-
-def slaveTemplate = new DockerSlaveTemplate();
-slaveTemplate.setLabelString(label);
-slaveTemplate.setLauncher(launcher);
-slaveTemplate.setMode(Node.Mode.EXCLUSIVE);
-slaveTemplate.setRetentionStrategy(new DockerOnceRetentionStrategy(5));
-slaveTemplate.setDockerContainerLifecycle(containerLifecycle);
-slaveTemplate.setNodeProperties(nodeProperties);
-
-def templates = myCloud.getTemplates();
-def newTemplates = new ArrayList<DockerSlaveTemplate>();
-newTemplates.addAll(templates);
-newTemplates.add(slaveTemplate);
-
-myCloud.setTemplates(newTemplates);
-Jenkins.getActiveInstance().save();
-
-return true`
-
-	query := fmt.Sprintf("%s&script=%s", crumbHeader, script)
-
-	scriptURL := fmt.Sprintf("%s%s", viper.GetString("jenkinsurl"), "/scriptText")
-	body := strings.NewReader(query)
-	req, err = http.NewRequest("POST", scriptURL, body)
-	if err != nil {
-		log.Fatal(err)
-	}
-	req.SetBasicAuth(viper.GetString("username"), viper.GetString("password"))
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-	resp, err = http.DefaultClient.Do(req)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusOK {
-		bodyBytes, _ := ioutil.ReadAll(resp.Body)
-		bodyString := string(bodyBytes)
-		fmt.Println(bodyString)
-	}
+	fmt.Println(body)
 
 	return nil
 }
