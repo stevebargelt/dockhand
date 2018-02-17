@@ -26,4 +26,9 @@ import (
 
 func main() {
 	cmd.Execute()
+
+	// err := doc.GenMarkdownTree(cmd.RootCmd, "docs")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 }
