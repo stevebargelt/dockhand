@@ -41,12 +41,16 @@ var (
 var createDockerTemplateCmd = &cobra.Command{
 	Use:   "createDockerTemplate",
 	Short: "Creates a docker template in a Jenkins YAD cloud",
-	Long: `Creates a 'Docker Template' in a Jenkins Yet Another Docker Plugin Cloud
-					given the could name, a label, and a docker image to pull.`,
+	Long: `Creates a 'Docker Template' in a Jenkins Yet Another Docker Plugin Cloud given 
+	the cloud name, a label, and a docker image to pull. The label must be unique across
+	all of the Docker Templates otherwise there is no guarantee a job will run on the 
+	container that it was intended to run on.`,
 }
 
 func init() {
 	RootCmd.AddCommand(createDockerTemplateCmd)
+	createDockerTemplateCmd.Flags().StringVarP(&cloudName, "cloudname", "c", "", "The Jenkins Yet Another Docker 'Cloud Name' to add Docker Template to")
+	createDockerTemplateCmd.MarkFlagRequired("cloudname")
 	createDockerTemplateCmd.Flags().StringVarP(&label, "label", "l", "", "The unique label to use for this Docker Template")
 	createDockerTemplateCmd.MarkFlagRequired("label")
 	createDockerTemplateCmd.Flags().StringVarP(&image, "image", "i", "", "The docker image that this template will use")

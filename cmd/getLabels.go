@@ -21,10 +21,9 @@
 package cmd
 
 import (
-	"bytes"
 	"fmt"
+	"io/ioutil"
 	"strings"
-	"text/template"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -34,34 +33,25 @@ import (
 var getLabelsCmd = &cobra.Command{
 	Use:   "getLabels",
 	Short: "Get the labels from the YAD Docker Templates in Jenkins",
-	Long: `Returns the labels used in all of the Docker Templates in a 
-				 Jenkins Yet Another Docker Plugin Cloud - given
-				 the cloud name as a parameter --cloudname.`,
+	Long: `Returns the labels used in all of the Docker Templates in 
+				 all of the clouds of type Jenkins Yet Another Docker Plugin .`,
 }
 
 func init() {
 
 	RootCmd.AddCommand(getLabelsCmd)
-	getLabelsCmd.Flags().StringVarP(&cloudName, "cloudname", "c", "", "The Jenkins Yet Another Docker 'Cloud Name' to add Docker Template to")
-	viper.BindPFlag("cloudname", getLabelsCmd.PersistentFlags().Lookup("cloudname"))
 	getLabelsCmd.RunE = getLabels
 }
 
 // GetLabels returns the labels used in a YAD Cloud
 func GetLabels() ([]string, error) {
 
-	data := struct {
-		Cloudname string
-	}{viper.GetString("cloudname")}
-
-	t, err := template.ParseFiles("scripts/getLabels.groovy")
-	var tpl bytes.Buffer
-	err = t.Execute(&tpl, data)
+	script, err := ioutil.ReadFile("scripts/getLabels.groovy")
 	if err != nil {
 		return nil, err
 	}
 
-	body, err := jenkins.RunScript(viper.GetString("jenkinsurl"), viper.GetString("username"), viper.GetString("password"), tpl.String())
+	body, err := jenkins.RunScript(viper.GetString("jenkinsurl"), viper.GetString("username"), viper.GetString("password"), string(script))
 	if err != nil {
 		return nil, err
 	}
